@@ -68,9 +68,9 @@ def create_game(db: Session) -> Game:
         db.add(inventory)
 
         # Every team starts with three plots.
-        plot_1 = Plot(team_id=team.id)
-        plot_2 = Plot(team_id=team.id)
-        plot_3 = Plot(team_id=team.id)
+        plot_1 = Plot(team_id=team.id, row=0, column=0)
+        plot_2 = Plot(team_id=team.id, row=0, column=1)
+        plot_3 = Plot(team_id=team.id, row=0, column=2)
 
         db.add_all([
             plot_1,

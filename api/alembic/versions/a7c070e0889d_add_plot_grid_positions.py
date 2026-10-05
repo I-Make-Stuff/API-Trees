@@ -71,8 +71,8 @@ def upgrade() -> None:
         )
         UPDATE plots
         SET
-            row = numbered_plots.position / 4,
-            column = numbered_plots.position % 4
+            "row" = numbered_plots.position / 4,
+            "column" = numbered_plots.position % 4
         FROM numbered_plots
         WHERE plots.id = numbered_plots.id
         """
