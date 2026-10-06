@@ -40,6 +40,7 @@ class PublicTeamResponse(BaseModel):
     money: int
     plots: int
     trees: int
+    plot_ids: list[int]
 
 
 # ============================================================

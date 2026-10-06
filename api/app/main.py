@@ -3,7 +3,7 @@ from contextlib import asynccontextmanager
 from fastapi import Depends, FastAPI, HTTPException, status
 from pydantic import BaseModel, Field
 
-from sqlalchemy import select
+from sqlalchemy import select, func
 
 from sqlalchemy.exc import IntegrityError
 
@@ -513,80 +513,68 @@ def end_game(
     )
 
 @app.get(
-
-    "/teams/{team_name}",
-
+    "/team/{team_name}",
     response_model=PublicTeamResponse,
-
+    tags=["Teams"],
+    summary="Get public team status",
 )
 
-def get_team(
-
+def get_team_status(
     team_name: str,
-
     db: Session = Depends(get_db),
-
 ):
-
-    game = get_current_game(db)
-
-    if game is None:
-
-        raise HTTPException(
-
-            status_code=status.HTTP_404_NOT_FOUND,
-
-            detail="No game exists.",
-
-        )
-
-    team_name = team_name.lower().strip()
-
     team = db.scalar(
-
         select(Team).where(
-
-            Team.game_id == game.id,
-
-            Team.name == team_name,
-
+            Team.name == team_name
         )
-
     )
 
     if team is None:
-
         raise HTTPException(
-
-            status_code=status.HTTP_404_NOT_FOUND,
-
-            detail=f"Team '{team_name}' does not exist.",
-
+            status_code=404,
+            detail="Team not found.",
         )
 
-    inventory = team.inventory
+    inventory = db.scalar(
+        select(Inventory).where(
+            Inventory.team_id == team.id
+        )
+    )
 
-    tree_count = sum(
+    plots = db.scalars(
+        select(Plot)
+        .where(
+            Plot.team_id == team.id
+        )
+        .order_by(
+            Plot.row,
+            Plot.column,
+        )
+    ).all()
 
-        1
-
-        for plot in team.plots
-
-        if plot.tree is not None
-
+    tree_count = db.scalar(
+        select(func.count(Tree.id))
+        .join(
+            Plot,
+            Tree.plot_id == Plot.id,
+        )
+        .where(
+            Plot.team_id == team.id,
+            Tree.status != TreeStatus.DEAD,
+        )
     )
 
     return PublicTeamResponse(
-
         team=team.name,
-
         money=inventory.money,
-
-        plots=len(team.plots),
-
-        trees=tree_count,
-
+        plots=len(plots),
+        trees=tree_count or 0,
+        plot_ids=[
+            plot.id
+            for plot in plots
+        ],
     )
+
 
 @app.get("/health")
 
